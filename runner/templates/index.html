@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OptimalMD Test Runner</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --panel: #ffffff; --border: #dde3ec; --text: #142033; --muted: #66748a;
+    --brand: #0b2447; --accent: #1e9bd7; --pass: #16a34a; --fail: #dc2626; --skip: #ca8a04;
+    --pass-bg: #ecfdf3; --fail-bg: #fef2f2; --skip-bg: #fefce8; --run-bg: #eff8fd;
+    --log-bg: #0f172a; --log-text: #cbd5e1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--brand); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .mode { font-size: 12px; opacity: .75; }
+  .badge { margin-left: auto; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: #334155; }
+  .badge.running { background: var(--accent); }
+  .badge.passed { background: var(--pass); }
+  .badge.failed { background: var(--fail); }
+
+  .controls { padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--panel); border-bottom: 1px solid var(--border); }
+  button, select { font: inherit; font-size: 14px; border-radius: 8px; border: 1px solid var(--border); padding: 8px 14px; background: #fff; color: var(--text); cursor: pointer; }
+  button.suite { background: var(--brand); color: #fff; border-color: var(--brand); }
+  button.suite.primary { background: var(--accent); border-color: var(--accent); }
+  button.stop { background: #fff; color: var(--fail); border-color: var(--fail); }
+  button:disabled, select:disabled { opacity: .45; cursor: not-allowed; }
+  .spacer { flex: 1; }
+  .counts { display: flex; gap: 14px; font-size: 14px; font-weight: 600; }
+  .counts .p { color: var(--pass); } .counts .f { color: var(--fail); } .counts .s { color: var(--skip); }
+
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; padding: 16px 24px; height: calc(100vh - 130px); min-height: 480px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .screen { flex: 1; display: flex; align-items: center; justify-content: center; background: #e9edf3; min-height: 0; }
+  .screen img { max-width: 100%; max-height: 100%; object-fit: contain; display: none; }
+  .screen .placeholder { color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
+
+  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-transform: none; letter-spacing: 0; }
+  .view-toggle button { border: 0; border-radius: 0; padding: 4px 12px; font-size: 12px; background: #fff; color: var(--muted); }
+  .view-toggle button.on { background: var(--brand); color: #fff; }
+
+  /* Readable view */
+  #readable { flex: 1; overflow: auto; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
+  #readable .empty { color: var(--muted); }
+  .banner { border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-weight: 600; background: var(--run-bg); color: var(--brand); }
+  .banner.passed { background: var(--pass-bg); color: var(--pass); }
+  .banner.failed { background: var(--fail-bg); color: var(--fail); }
+  .file { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 14px 0 6px; }
+  .test { border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 8px; margin-bottom: 8px; background: #fff; }
+  .test.passed { border-left-color: var(--pass); }
+  .test.failed { border-left-color: var(--fail); }
+  .test.skipped { border-left-color: var(--skip); }
+  .test-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 8px 10px; font-weight: 600; }
+  .pill { flex-shrink: 0; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--run-bg); color: var(--accent); }
+  .test.passed .pill { background: var(--pass-bg); color: var(--pass); }
+  .test.failed .pill { background: var(--fail-bg); color: var(--fail); }
+  .test.skipped .pill { background: var(--skip-bg); color: var(--skip); }
+  .steps { margin: 0; padding: 0 10px 8px 28px; color: #334155; font-size: 13px; }
+  .steps:empty { display: none; }
+  .steps li { margin: 2px 0; }
+  .reason { padding: 0 10px 8px; font-size: 13px; color: var(--skip); }
+  .why { margin: 0 10px 10px; padding: 8px 10px; border-radius: 6px; background: var(--fail-bg); color: #991b1b; font: 12.5px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-word; }
+  .why b { font-family: "Segoe UI", system-ui, sans-serif; display: block; margin-bottom: 2px; }
+  .note { color: var(--muted); font-size: 13px; margin: 4px 0; }
+
+  /* Raw terminal view */
+  #log { flex: 1; margin: 0; padding: 12px 14px; overflow: auto; background: var(--log-bg); color: var(--log-text); font: 12.5px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-word; display: none; }
+  #log .pass { color: #4ade80; font-weight: 600; }
+  #log .fail { color: #f87171; font-weight: 600; }
+  #log .skip { color: #facc15; }
+  #log .test { color: #93c5fd; }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; height: auto; }
+    .screen { min-height: 260px; }
+    #readable, #log { min-height: 360px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>OptimalMD Test Runner</h1>
+  <span class="mode">{{ "Headless browser" if headless else "Browser also opens on this computer" }}</span>
+  <span id="badge" class="badge">Idle</span>
+</header>
+
+<div class="controls">
+  {% for suite in suites %}
+    <button class="suite{{ ' primary' if suite.label in ('E2E', 'Full flow') else '' }}" data-target="{{ suite.target }}">{{ suite.label }}</button>
+  {% endfor %}
+  <select id="file">
+    <option value="">Run a single file…</option>
+    {% for f in files %}<option value="{{ f }}">{{ f }}</option>{% endfor %}
+  </select>
+  <button class="stop" id="stop" disabled>Stop</button>
+  <span class="spacer"></span>
+  <div class="counts"><span class="p" id="c-pass">0 passed</span><span class="f" id="c-fail">0 failed</span><span class="s" id="c-skip">0 skipped</span></div>
+</div>
+
+<main>
+  <section class="panel">
+    <h2><span>Live browser</span><span id="frame-info"></span></h2>
+    <div class="screen">
+      <img id="screen" alt="Live view of the test browser">
+      <div class="placeholder" id="placeholder">The browser will appear here when a test opens a page.</div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>
+      <span>Live output <span id="target"></span></span>
+      <span class="view-toggle"><button id="v-readable" class="on">Readable</button><button id="v-raw">Raw</button></span>
+    </h2>
+    <div id="readable"><p class="empty">Choose a suite to start.</p></div>
+    <pre id="log"></pre>
+  </section>
+</main>
+
+<script>
+  const log = document.getElementById("log");
+  const readable = document.getElementById("readable");
+  const screen = document.getElementById("screen");
+  const placeholder = document.getElementById("placeholder");
+  const badge = document.getElementById("badge");
+  const stopBtn = document.getElementById("stop");
+  const fileSelect = document.getElementById("file");
+  const runButtons = [...document.querySelectorAll("button.suite")];
+  let frames = 0;
+
+  // ---- Names -------------------------------------------------------------
+
+  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // "tests/06_dependents" -> "Dependents", "full-flow" -> "Full flow", file paths -> file name
+  function targetLabel(target) {
+    if (target === "full-flow") return "Full flow";
+    const folder = target.match(/^tests\/\d*_?([^/]+)$/);
+    if (folder) return folder[1] === "e2e" ? "E2E" : capitalize(folder[1].replace(/_/g, " "));
+    return target.split("/").pop();
+  }
+
+  // "test_add_adult_dependent[chromium]" -> "Add adult dependent"
+  // "test_step1_register_new_member[chromium]" -> "Step 1: Register new member"
+  // "test_select_plan_updates_summary[chromium-OptimalMD Prime-$149]" -> "Select plan updates summary · OptimalMD Prime-$149"
+  function testLabel(node) {
+    const m = node.match(/^([^\[]+)(?:\[(.*)\])?$/);
+    let name = m[1].replace(/^test_/, "");
+    const step = name.match(/^step(\d+)_(.*)$/);
+    name = step ? `Step ${step[1]}: ${capitalize(step[2].replace(/_/g, " "))}` : capitalize(name.replace(/_/g, " "));
+    const param = (m[2] || "").replace(/^chromium-?/, "");
+    return param ? `${name} · ${param}` : name;
+  }
+
+  // "tests/06_dependents/test_add_dependent.py" -> "Dependents · add dependent"
+  function fileLabel(path) {
+    const parts = path.split("/");
+    const file = parts.pop().replace(/^test_/, "").replace(/\.py$/, "").replace(/_/g, " ");
+    const folder = parts.length > 1 ? targetLabel(parts.join("/")) : "";
+    return folder ? `${folder} · ${file}` : file;
+  }
+
+  function duration(seconds) {
+    const s = Math.round(seconds);
+    return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${s % 60} s`;
+  }
+
+  // ---- Readable view -----------------------------------------------------
+  // Turns pytest's -v -s output into one card per test with its own messages,
+  // a status badge and, for failures, the key error lines.
+
+  const STATUS = { PASSED: ["passed", "Passed"], FAILED: ["failed", "Failed"], ERROR: ["failed", "Error"], SKIPPED: ["skipped", "Skipped"] };
+  const NOISE = /^(platform |cachedir:|metadata:|rootdir:|configfile:|plugins:|=+ test session starts|-- Docs|\s+(C:\\|Instance attributes|as each test|Use a @classmethod|See https|fixturefunc)|.*Warning:)/;
+
+  let tests, current, section, lastFile, failure, banner;
+
+  function resetReadable() {
+    readable.innerHTML = "";
+    tests = {}; current = null; section = "run"; lastFile = null; failure = null; banner = null;
+    updateCounts();
+  }
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function add(node) {
+    const atBottom = readable.scrollHeight - readable.scrollTop - readable.clientHeight < 60;
+    readable.appendChild(node);
+    if (atBottom) readable.scrollTop = readable.scrollHeight;
+    return node;
+  }
+
+  function setBanner(text, cls = "") {
+    if (!banner) banner = readable.insertBefore(el("div", "banner"), readable.firstChild);
+    banner.className = `banner ${cls}`;
+    banner.textContent = text;
+  }
+
+  function testCard(file, node) {
+    if (tests[node]) return tests[node];
+    if (file !== lastFile) { add(el("div", "file", fileLabel(file))); lastFile = file; }
+    const card = el("div", "test");
+    const head = el("div", "test-head");
+    head.append(el("span", "", testLabel(node)), el("span", "pill", "Running…"));
+    card.append(head, el("ul", "steps"));
+    add(card);
+    return (tests[node] = { card, status: null });
+  }
+
+  function setStatus(test, word, rest) {
+    const [cls, label] = STATUS[word];
+    test.status = cls;
+    test.card.className = `test ${cls}`;
+    test.card.querySelector(".pill").textContent = label;
+    const reason = rest.trim().replace(/^\((.*)\)$/, "$1");
+    if (cls === "skipped" && reason) test.card.append(el("div", "reason", reason));
+    updateCounts();
+  }
+
+  function addStep(test, text) {
+    test.card.querySelector(".steps").append(el("li", "", text));
+  }
+
+  // Key lines of a failure: the assertion and what it waited for, not the whole traceback.
+  function addWhy(test, line) {
+    let box = test.card.querySelector(".why");
+    if (!box) {
+      box = el("div", "why");
+      box.append(el("b", "", "Why it failed"));
+      box.dataset.lines = 0;
+      test.card.append(box);
+    }
+    if (+box.dataset.lines >= 5) return;
+    box.append(document.createTextNode(line + "\n"));
+    box.dataset.lines = +box.dataset.lines + 1;
+  }
+
+  function handleReadable(line) {
+    let m;
+    if (line.startsWith("$ pytest ")) { setBanner(`Running ${targetLabel(line.slice(9).trim())}…`); return; }
+    if ((m = line.match(/collected (\d+) items?/))) { setBanner(`Running ${m[1]} test${m[1] === "1" ? "" : "s"}…`); return; }
+    if (/^=+ (FAILURES|ERRORS) =+$/.test(line)) { section = "failures"; return; }
+    if (/^=+ (warnings summary|PASSES|short test summary info) =+$/.test(line)) { section = "hidden"; return; }
+    if ((m = line.match(/^=+ (.*) in ([\d.]+)s/))) {
+      const failed = /\b(failed|error)/.test(m[1]);
+      setBanner(`Finished in ${duration(+m[2])}: ${m[1].replace(/, \d+ warnings?/, "")}`, failed ? "failed" : "passed");
+      section = "done";
+      return;
+    }
+    if (line.startsWith("■")) { setBanner("Run stopped", "failed"); return; }
+
+    if (section === "failures") {
+      if ((m = line.match(/^_{2,} (?:ERROR at \w+ of )?(\S.*?) _{2,}$/))) { failure = { test: tests[m[1]], part: "error" }; return; }
+      if (!failure || !failure.test || !(m = line.match(/^E\s+(.*)$/))) return;
+      const text = m[1].trim();
+      if (!text) return;
+      if (text === "Call log:") { failure.part = "callLog"; return; }
+      if (text.startsWith("Aria snapshot")) { failure.part = "snapshot"; return; }
+      if (failure.part === "callLog") {
+        // Only the first call-log entry: what the test was waiting for.
+        addWhy(failure.test, text.replace(/^- /, ""));
+        failure.part = "rest";
+      } else if (failure.part === "snapshot") {
+        // The page snapshot shows any popup that was open, e.g. a site error message.
+        if (text === "- dialog:") failure.part = "dialog";
+      } else if (failure.part === "dialog") {
+        const heading = text.match(/^- heading "(.*)"/);
+        if (heading) { addWhy(failure.test, `Page showed: ${heading[1]}`); failure.test = null; }
+      } else if (failure.part === "error") {
+        addWhy(failure.test, text);
+      }
+      return;
+    }
+    // Skip reasons are only printed in pytest's end-of-run summary, in test order.
+    if ((m = line.match(/^SKIPPED \[\d+\] \S+?:\d+: (.*)$/))) {
+      const test = Object.values(tests).find(t => t.status === "skipped" && !t.card.querySelector(".reason"));
+      if (test) test.card.append(el("div", "reason", m[1].replace(/test_\w+(\[[^\]]*\])?/g, node => `"${testLabel(node)}"`)));
+      return;
+    }
+    if (section !== "run") return;
+
+    if ((m = line.match(/^(tests\/\S+?\.py)::(\S+)\s*(PASSED|FAILED|ERROR|SKIPPED)?(.*)$/))) {
+      current = testCard(m[1], m[2]);
+      if (m[3]) setStatus(current, m[3], m[4]);
+      return;
+    }
+    if ((m = line.match(/^(PASSED|FAILED|ERROR|SKIPPED)\b(.*)$/)) && current) { setStatus(current, m[1], m[2]); return; }
+    if (!line.trim() || NOISE.test(line)) return;
+    if (current) addStep(current, line.trim());
+    else add(el("p", "note", line.trim()));
+  }
+
+  function updateCounts() {
+    const all = Object.values(tests || {});
+    const n = cls => all.filter(t => t.status === cls).length;
+    document.getElementById("c-pass").textContent = `${n("passed")} passed`;
+    document.getElementById("c-fail").textContent = `${n("failed")} failed`;
+    document.getElementById("c-skip").textContent = `${n("skipped")} skipped`;
+  }
+
+  // ---- Raw view ----------------------------------------------------------
+
+  function rawClass(line) {
+    if (/^(PASSED|FAILED|ERROR|SKIPPED) tests\//.test(line)) return /^PASSED/.test(line) ? "pass" : /^SKIPPED/.test(line) ? "skip" : "fail";
+    if (/(^|\s)PASSED(\s|$)/.test(line)) return "pass";
+    if (/(^|\s)(FAILED|ERROR)(\s|$)/.test(line)) return "fail";
+    if (/(^|\s)SKIPPED(\s|\(|$)/.test(line)) return "skip";
+    if (/^tests\/.*::/.test(line)) return "test";
+    return "";
+  }
+
+  function appendRaw(line) {
+    const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    const span = el("span", rawClass(line), line + "\n");
+    log.appendChild(span);
+    if (atBottom) log.scrollTop = log.scrollHeight;
+  }
+
+  function showView(raw) {
+    log.style.display = raw ? "block" : "none";
+    readable.style.display = raw ? "none" : "block";
+    document.getElementById("v-raw").classList.toggle("on", raw);
+    document.getElementById("v-readable").classList.toggle("on", !raw);
+  }
+  document.getElementById("v-readable").addEventListener("click", () => showView(false));
+  document.getElementById("v-raw").addEventListener("click", () => showView(true));
+
+  // ---- Run controls and live stream --------------------------------------
+
+  function setRunning(running) {
+    runButtons.forEach(b => b.disabled = running);
+    fileSelect.disabled = running;
+    stopBtn.disabled = !running;
+  }
+
+  function showStatus(s) {
+    setRunning(s.running);
+    document.getElementById("target").textContent = s.label ? `· ${targetLabel(s.label)}` : "";
+    badge.className = "badge";
+    if (s.running) { badge.textContent = "Running…"; badge.classList.add("running"); }
+    else if (s.exit_code === null) { badge.textContent = "Idle"; }
+    else if (s.exit_code === 0) { badge.textContent = "All passed"; badge.classList.add("passed"); }
+    else { badge.textContent = "Finished with failures"; badge.classList.add("failed"); }
+    if (!s.running && tests) {
+      // A stopped run leaves tests that never finished.
+      Object.values(tests).filter(t => !t.status).forEach(t => t.card.querySelector(".pill").textContent = "Not finished");
+    }
+  }
+
+  async function startRun(target) {
+    const res = await fetch("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target }) });
+    if (!res.ok) alert((await res.json()).error || "Could not start the run");
+  }
+
+  runButtons.forEach(b => b.addEventListener("click", () => startRun(b.dataset.target)));
+  fileSelect.addEventListener("change", () => { if (fileSelect.value) { startRun(fileSelect.value); fileSelect.value = ""; } });
+  stopBtn.addEventListener("click", () => fetch("/stop", { method: "POST" }));
+
+  resetReadable();
+  const events = new EventSource("/stream");
+  events.addEventListener("reset", () => {
+    log.textContent = "";
+    resetReadable();
+    frames = 0; screen.style.display = "none"; placeholder.style.display = "";
+    document.getElementById("frame-info").textContent = "";
+  });
+  events.addEventListener("log", e => {
+    const line = JSON.parse(e.data);
+    appendRaw(line);
+    handleReadable(line);
+  });
+  events.addEventListener("status", e => showStatus(JSON.parse(e.data)));
+  events.addEventListener("frame", e => {
+    screen.src = "data:image/jpeg;base64," + e.data;
+    screen.style.display = "block"; placeholder.style.display = "none";
+    document.getElementById("frame-info").textContent = `${++frames} frames`;
+  });
+  events.onerror = () => { badge.textContent = "Disconnected – retrying…"; badge.className = "badge"; };
+</script>
+</body>
+</html>

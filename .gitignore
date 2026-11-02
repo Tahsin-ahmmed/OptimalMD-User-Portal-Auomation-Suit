@@ -1,0 +1,14 @@
+# Secrets (Gmail app password)
+.env
+
+# Local test data: the saved member includes a password
+test_state/
+
+# Run output
+test-results/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
