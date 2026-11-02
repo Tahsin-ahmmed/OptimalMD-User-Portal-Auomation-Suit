@@ -24,7 +24,8 @@ results**.
   text and structure only where the site offers nothing better.
 - **Clear failures.** Automatic full-page screenshots in `test-results/<folder>/`, and site
   outages (e.g. "Something Went Wrong") are reported as system issues.
-- **Web runner.** One click per suite, live browser screencast, readable or raw output.
+- **Web runner.** One click per suite, live browser screencast (also when headless),
+  readable or raw output, optional visible window and slow motion.
 
 ## Tech stack
 
@@ -91,8 +92,8 @@ pytest tests/05_dashboard                                        # one suite
 pytest tests/05_dashboard/test_pharmacy.py                       # one test
 ```
 
-`pytest.ini` opens a visible browser with a short delay per action so runs can be watched;
-for headless runs use `pytest -o addopts="" -v ...`.
+Runs are headless and at full speed by default. To watch one, tick **Show browser window**
+and/or **Slow motion** in the runner, or add `--headed --slowmo 300` on the command line.
 
 Run a whole folder for ordered flows: a step file run on its own skips with
 "Run the whole folder".

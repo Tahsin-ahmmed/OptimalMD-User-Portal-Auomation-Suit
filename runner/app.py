@@ -93,21 +93,23 @@ def allowed_targets() -> set:
 
 # --- Running pytest -------------------------------------------------------
 
-def pytest_command(target: str) -> list:
-    # Replace pytest.ini's addopts so the runner controls headed/headless.
+def pytest_command(target: str, show_browser: bool = False, slow_motion: bool = False) -> list:
+    # Headless and full speed by default (the live view still shows the browser);
+    # the page's checkboxes open a real window and/or slow every action down to watch it.
     options = [
         "-o", "addopts=",
         "-v", "-s", "-rA",
         "--browser", "chromium",
-        "--slowmo", "300",
         "--screenshot", "only-on-failure",
         "--output", "test-results",
         "-p", "runner.screencast_plugin",
         "-p", "no:cacheprovider",
         "-W", "ignore::DeprecationWarning",
     ]
-    if not HEADLESS:
+    if show_browser and not HEADLESS:
         options.append("--headed")
+    if slow_motion:
+        options += ["--slowmo", "300"]
     if target == FULL_FLOW_TARGET:
         paths = ["tests", *(f"--ignore={folder}" for folder in FULL_FLOW_EXCLUDES)]
     else:
@@ -160,7 +162,8 @@ def index():
 @app.post("/run")
 @password_protected
 def run():
-    target = (request.get_json(silent=True) or {}).get("target", "")
+    body = request.get_json(silent=True) or {}
+    target = body.get("target", "")
     if target not in allowed_targets():
         return jsonify(error=f"Unknown test target: {target}"), 400
 
@@ -174,7 +177,7 @@ def run():
             "PYTHONIOENCODING": "utf-8",
             "PYTHONUNBUFFERED": "1",
         }
-        command = pytest_command(target)
+        command = pytest_command(target, bool(body.get("show_browser")), bool(body.get("slow_motion")))
         process = subprocess.Popen(
             command,
             cwd=ROOT,

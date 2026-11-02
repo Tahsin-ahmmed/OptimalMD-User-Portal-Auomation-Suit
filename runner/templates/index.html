@@ -28,6 +28,7 @@
   button.stop { background: #fff; color: var(--fail); border-color: var(--fail); }
   button:disabled, select:disabled { opacity: .45; cursor: not-allowed; }
   .spacer { flex: 1; }
+  label.option { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); cursor: pointer; margin-left: 6px; }
   .counts { display: flex; gap: 14px; font-size: 14px; font-weight: 600; }
   .counts .p { color: var(--pass); } .counts .f { color: var(--fail); } .counts .s { color: var(--skip); }
 
@@ -83,7 +84,7 @@
 <body>
 <header>
   <h1>OptimalMD Test Runner</h1>
-  <span class="mode">{{ "Headless browser" if headless else "Browser also opens on this computer" }}</span>
+  <span class="mode">Headless at full speed; watch it in Live browser below</span>
   <span id="badge" class="badge">Idle</span>
 </header>
 
@@ -96,6 +97,8 @@
     {% for f in files %}<option value="{{ f }}">{{ f }}</option>{% endfor %}
   </select>
   <button class="stop" id="stop" disabled>Stop</button>
+  {% if not headless %}<label class="option"><input type="checkbox" id="opt-window"> Show browser window</label>{% endif %}
+  <label class="option"><input type="checkbox" id="opt-slow"> Slow motion</label>
   <span class="spacer"></span>
   <div class="counts"><span class="p" id="c-pass">0 passed</span><span class="f" id="c-fail">0 failed</span><span class="s" id="c-skip">0 skipped</span></div>
 </div>
@@ -353,7 +356,11 @@
   }
 
   async function startRun(target) {
-    const res = await fetch("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ target }) });
+    const res = await fetch("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      target,
+      show_browser: !!document.getElementById("opt-window")?.checked,
+      slow_motion: document.getElementById("opt-slow").checked,
+    }) });
     if (!res.ok) alert((await res.json()).error || "Could not start the run");
   }
 
