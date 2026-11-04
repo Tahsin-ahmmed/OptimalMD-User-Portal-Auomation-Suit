@@ -37,7 +37,10 @@ class DashboardPage:
         self.ai_doctor_terms_label = page.locator("label").filter(has_text="I understand and agree to the")
         self.ai_doctor_continue_button = page.get_by_role("button", name="OK, Continue")
         # Opening My AI Doctor goes to /ai in the same tab, or shows this error popup.
-        self.ai_doctor_page_heading = page.get_by_text("OptimalMD Member Login", exact=True)
+        # /ai embeds the AI app (ai.optimalmd.com), which signs the member in by itself
+        # and can take ~45 s to load; its header has a "Back to Portal" button.
+        self.ai_doctor_frame = page.locator("iframe[src*='ai.optimalmd.com']")
+        self.ai_doctor_app = page.frame_locator("iframe[src*='ai.optimalmd.com']").get_by_text("Back to Portal")
         self.ai_doctor_error_popup = page.get_by_role("dialog").filter(has_text="Something Went Wrong")
 
     def open(self, timeout: float = 120_000):
