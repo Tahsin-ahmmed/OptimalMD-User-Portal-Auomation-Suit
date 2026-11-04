@@ -7,6 +7,16 @@ credentials, profile activation, dashboard services, dependents and password cha
 ships with a small web runner that shows a **live browser view** and **readable step-by-step
 results**.
 
+## Demo
+
+[![Watch the demo video](https://cdn.loom.com/sessions/thumbnails/4ef05db6e6244ac297716cb351a1b0c3-with-play.gif)](https://www.loom.com/share/4ef05db6e6244ac297716cb351a1b0c3)
+
+▶ [Watch the demo on Loom](https://www.loom.com/share/4ef05db6e6244ac297716cb351a1b0c3)
+
+**Web runner:** a Full flow run with the live browser view and readable step-by-step results.
+
+![Web runner running the full flow](docs/runner.png)
+
 ## Highlights
 
 - **Real end-to-end flows, including email.** Login credentials, dependent invitations and
