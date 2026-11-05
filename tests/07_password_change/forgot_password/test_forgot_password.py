@@ -2,8 +2,8 @@
 login -> Forgot Password? -> send code -> code from email -> verify ->
 "Create New Password" link from email -> reset -> login with new password.
 
-Uses the latest Prime member saved by the e2e tests (test_state/latest_member.json)
-and saves the new password there, so the dependents tests keep working.
+Uses the latest Prime member saved by the registration (or e2e) tests
+(test_state/latest_member.json) and saves the new password there, so later runs keep working.
 Each step is a separate test; when one fails, the rest are skipped.
 """
 import re
@@ -19,16 +19,11 @@ from utils.email_reader import RESET_CODE_SUBJECT, RESET_LINK_SUBJECT, existing_
 from utils.member_store import load_latest_member, update_latest_member
 from utils.test_data import new_password
 
-# Blocked by a staging bug: after the code is verified, /api/auth/forgetPassword
-# returns 404 "Email not found", so the reset email is never sent.
-# Delete this line once the dev team has fixed it.
-pytestmark = pytest.mark.skip(reason="Blocked by bug: forgetPassword returns 'Email not found' after code verification")
-
 
 def test_step1_open_forgot_password_from_login(journey):
     member = load_latest_member()
     if not member:
-        pytest.skip("No saved member yet. Run the e2e tests first.")
+        pytest.skip("No saved member yet. Run the registration (or e2e) tests first.")
     journey["member"] = member
     journey["full_name"] = f"{member['first_name']} {member['last_name']}"
     print(f"\n  Member: {journey['full_name']} <{member['email']}>")

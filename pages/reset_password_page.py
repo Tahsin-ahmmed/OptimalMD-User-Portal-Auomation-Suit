@@ -11,7 +11,8 @@ class ResetPasswordPage:
 
     def __init__(self, page: Page):
         self.page = page
-        self.heading = page.get_by_text("RESET YOUR PASSWORD", exact=True)
+        # CSS shows the heading in capitals, so match it regardless of case.
+        self.heading = page.get_by_text(re.compile(r"^reset your password$", re.I))
         self.new_password_input = page.get_by_placeholder("Enter your new password")
         self.confirm_password_input = page.get_by_placeholder("Confirm your new password")
         self.reset_button = page.get_by_role("button", name=re.compile(r"^reset$", re.I))

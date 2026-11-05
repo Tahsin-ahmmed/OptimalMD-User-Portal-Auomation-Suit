@@ -11,7 +11,8 @@ class ForgotPasswordPage:
 
     def __init__(self, page: Page):
         self.page = page
-        self.heading = page.get_by_text("PASSWORD RESET - TWO-FACTOR AUTHENTICATION", exact=True)
+        # Written "Password Reset - Two-Factor Authentication"; CSS shows it in capitals.
+        self.heading = page.get_by_text("Password Reset - Two-Factor Authentication", exact=True)
         self.email_input = page.get_by_placeholder("Type your email address")
         self.send_code_button = page.get_by_role("button", name=re.compile(r"^send code$", re.I))
 

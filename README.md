@@ -55,7 +55,7 @@ tests/
   04_profile/             Profile activation wizard
   05_dashboard/           One file per dashboard button / service (19)
   06_dependents/          Add adult + child dependent, dependent login
-  07_password_change/     Change password (code by email); forgot password
+  07_password_change/     Change password and forgot password (codes and reset link by email)
 utils/
   email_reader.py         Gmail IMAP: credentials, verification codes, reset links
   member_store.py         Saves the latest registered member for the next suites
@@ -111,5 +111,4 @@ Run a whole folder for ordered flows: a step file run on its own skips with
 ## Known site issues (tests report them, they are not test bugs)
 
 - **My AI Doctor:** staging sometimes shows "Something Went Wrong — We couldn't open My AI Doctor™".
-- **Forgot password:** skipped until a staging bug is fixed (the reset API answers "Email not found").
 - **Physician Access:** the test expects the geo-restriction message shown outside the USA.
